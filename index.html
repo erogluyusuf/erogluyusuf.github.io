@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Molecule Animation</title>
+  <title>3D Interactive Molecule</title>
   <style>
     body {
-      height: 100vh;
       margin: 0;
-      background-image: radial-gradient(circle farthest-corner, #060A33, #000000);
-      background-repeat: no-repeat;
       overflow: hidden;
+      height: 100vh;
+      background-image: radial-gradient(circle farthest-corner, #060A33, #000000);
     }
     canvas {
       display: block;
@@ -17,179 +16,174 @@
   </style>
 </head>
 <body>
-  <!-- GLSL Noise Shader -->
+  <!-- Noise shader for vertex distortion -->
   <script id="webgl-noise" type="x-shader/x-vertex">
-    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-    vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-    vec4 permute(vec4 x) { return mod289(((x * 34.0) + 10.0) * x); }
+    vec3 mod289(vec3 x) {
+      return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+    vec4 mod289(vec4 x) {
+      return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+    vec4 permute(vec4 x) {
+      return mod289(((x*34.0)+10.0)*x);
+    }
     vec4 taylorInvSqrt(vec4 r) {
       return 1.79284291400159 - 0.85373472095314 * r;
     }
     float snoise(vec3 v) {
-      const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
-      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-
-      vec3 i = floor(v + dot(v, C.yyy));
-      vec3 x0 = v - i + dot(i, C.xxx);
+      const vec2  C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 =   v - i + dot(i, C.xxx);
       vec3 g = step(x0.yzx, x0.xyz);
       vec3 l = 1.0 - g;
-      vec3 i1 = min(g.xyz, l.zxy);
-      vec3 i2 = max(g.xyz, l.zxy);
-
+      vec3 i1 = min( g.xyz, l.zxy );
+      vec3 i2 = max( g.xyz, l.zxy );
       vec3 x1 = x0 - i1 + C.xxx;
       vec3 x2 = x0 - i2 + C.yyy;
       vec3 x3 = x0 - D.yyy;
-
       i = mod289(i);
-      vec4 p = permute(permute(permute(
-        i.z + vec4(0.0, i1.z, i2.z, 1.0)) +
-        i.y + vec4(0.0, i1.y, i2.y, 1.0)) +
-        i.x + vec4(0.0, i1.x, i2.x, 1.0));
-
+      vec4 p = permute( permute( permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
       float n_ = 0.142857142857;
-      vec3 ns = n_ * D.wyz - D.xzx;
+      vec3  ns = n_ * D.wyz - D.xzx;
       vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
       vec4 x_ = floor(j * ns.z);
-      vec4 y_ = floor(j - 7.0 * x_);
-      vec4 x = x_ * ns.x + ns.yyyy;
-      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 y_ = floor(j - 7.0 * x_ );
+      vec4 x = x_ *ns.x + ns.yyyy;
+      vec4 y = y_ *ns.x + ns.yyyy;
       vec4 h = 1.0 - abs(x) - abs(y);
-
-      vec4 b0 = vec4(x.xy, y.xy);
-      vec4 b1 = vec4(x.zw, y.zw);
-
-      vec4 s0 = floor(b0) * 2.0 + 1.0;
-      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 b0 = vec4( x.xy, y.xy );
+      vec4 b1 = vec4( x.zw, y.zw );
+      vec4 s0 = floor(b0)*2.0 + 1.0;
+      vec4 s1 = floor(b1)*2.0 + 1.0;
       vec4 sh = -step(h, vec4(0.0));
-
-      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-
-      vec3 p0 = vec3(a0.xy, h.x);
-      vec3 p1 = vec3(a0.zw, h.y);
-      vec3 p2 = vec3(a1.xy, h.z);
-      vec3 p3 = vec3(a1.zw, h.w);
-
-      vec4 norm = taylorInvSqrt(vec4(
-        dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+      vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+      vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+      vec3 p0 = vec3(a0.xy,h.x);
+      vec3 p1 = vec3(a0.zw,h.y);
+      vec3 p2 = vec3(a1.xy,h.z);
+      vec3 p3 = vec3(a1.zw,h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
       p0 *= norm.x;
       p1 *= norm.y;
       p2 *= norm.z;
       p3 *= norm.w;
-
-      vec4 m = max(0.6 - vec4(
-        dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+      vec4 m = max(0.5 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
       m = m * m;
-      return 105.0 * dot(m * m, vec4(
-        dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+      return 105.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),
+                                    dot(p2,x2), dot(p3,x3) ) );
     }
   </script>
 
-  <!-- Three.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-  <!-- JavaScript Uygulama -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r155/three.min.js"></script>
   <script>
     class World {
-      renderer;
-      scene;
-      camera;
-      molecule;
-
       constructor() {
-        this.build();
-        window.addEventListener('resize', this.resize.bind(this))
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        this.camera.position.z = 3;
+
+        this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(this.renderer.domElement);
+
+        this.controls = new THREE.Vector2();
+        this.clock = new THREE.Clock();
+
+        this.molecule = new Molecule();
+        this.scene.add(this.molecule);
+
+        this.addLights();
+        this.addListeners();
+
         this.animate = this.animate.bind(this);
         this.animate();
       }
 
-      build() {
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(
-          75,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-        this.camera.position.z = 3;
-
-        this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(this.renderer.domElement);
-
-        this.molecule = new Molecule()
-        this.scene.add(this.molecule);
+      addLights() {
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(2, 2, 2);
+        this.scene.add(pointLight);
       }
 
-      resize() {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        this.camera.aspect = w / h;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(w, h);
+      addListeners() {
+        window.addEventListener('resize', () => {
+          this.camera.aspect = window.innerWidth / window.innerHeight;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.addEventListener('mousemove', e => {
+          this.controls.x = (e.clientX / window.innerWidth) * 2 - 1;
+          this.controls.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        window.addEventListener('click', () => {
+          this.molecule.explode();
+        });
+
+        window.addEventListener('wheel', e => {
+          this.camera.position.z += e.deltaY * 0.005;
+        });
       }
 
       animate() {
         requestAnimationFrame(this.animate);
-        const time = performance.now() * 0.001;
-        this.molecule.animate(time);
+        const time = this.clock.getElapsedTime();
+        this.molecule.animate(time, this.controls);
         this.renderer.render(this.scene, this.camera);
       }
     }
 
     class Molecule extends THREE.Object3D {
-      radius = 1.5;
-      detail = 40;
-      particleSizeMin = 0.01;
-      particleSizeMax = 0.08;
-
       constructor() {
         super();
-        this.build();
-      }
+        this.radius = 1.5;
+        this.detail = 40;
+        this.particleSizeMin = 0.01;
+        this.particleSizeMax = 0.08;
 
-      build() {
         this.geometry = new THREE.IcosahedronBufferGeometry(1, this.detail);
         this.material = new THREE.PointsMaterial({
-          map: this.dot(),
+          map: this.makeDot(),
           blending: THREE.AdditiveBlending,
           color: 0x101A88,
-          depthTest: false
+          depthTest: false,
+          transparent: true
         });
+
         this.setupShader(this.material);
-        this.mesh = new THREE.Points(this.geometry, this.material);
-        this.add(this.mesh);
+        this.points = new THREE.Points(this.geometry, this.material);
+        this.add(this.points);
       }
 
-      dot(size = 32, color = "#FFFFFF") {
-        const sizeH = size * 0.5;
-        const canvas = document.createElement('canvas')
-        canvas.width = canvas.height = size
-        const ctx = canvas.getContext('2d')
-        const circle = new Path2D()
-        circle.arc(sizeH, sizeH, sizeH, 0, 2 * Math.PI);
+      makeDot(size = 32, color = "#FFFFFF") {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
         ctx.fillStyle = color;
-        ctx.fill(circle);
-        return new THREE.CanvasTexture(canvas)
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        return new THREE.CanvasTexture(canvas);
       }
 
       setupShader(material) {
-        material.onBeforeCompile = (shader) => {
-          shader.uniforms.time = { value: 0 }
-          shader.uniforms.radius = { value: this.radius }
-          shader.uniforms.particleSizeMin = { value: this.particleSizeMin }
-          shader.uniforms.particleSizeMax = { value: this.particleSizeMax }
-
-          const noise = document.getElementById("webgl-noise").textContent;
-
+        material.onBeforeCompile = shader => {
+          shader.uniforms.time = { value: 0 };
+          shader.uniforms.radius = { value: this.radius };
+          shader.uniforms.particleSizeMin = { value: this.particleSizeMin };
+          shader.uniforms.particleSizeMax = { value: this.particleSizeMax };
           shader.vertexShader = `
             uniform float particleSizeMax;
             uniform float particleSizeMin;
             uniform float radius;
             uniform float time;
-            ${noise}
-          ` + shader.vertexShader;
+          ` + document.getElementById("webgl-noise").textContent + "\n" + shader.vertexShader;
 
           shader.vertexShader = shader.vertexShader.replace(
             '#include <begin_vertex>',
@@ -200,19 +194,39 @@
               float l = radius / length(p);
               p *= l;
               float s = mix(particleSizeMin, particleSizeMax, n);
-              vec3 transformed = vec3(p.x, p.y, p.z);
-              gl_PointSize = s * 300.0 / -mvPosition.z; // Perspective scaling
+              vec3 transformed = p;
             `
           );
 
+          shader.vertexShader = shader.vertexShader.replace('gl_PointSize = size;', 'gl_PointSize = s;');
           material.userData.shader = shader;
+        };
+      }
+
+      animate(time, controls) {
+        this.rotation.y = time * 0.2 + controls.x * 0.5;
+        this.rotation.x = controls.y * 0.2;
+
+        if (this.material.userData.shader) {
+          this.material.userData.shader.uniforms.time.value = time;
+          const color = new THREE.Color().setHSL((time * 0.1) % 1, 0.8, 0.5);
+          this.material.color.set(color);
         }
       }
 
-      animate(time) {
-        this.mesh.rotation.set(0, time * 0.2, 0);
-        if (this.material.userData.shader)
-          this.material.userData.shader.uniforms.time.value = time;
+      explode() {
+        this.points.geometry = this.points.geometry.clone();
+        const positions = this.points.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i);
+          const y = positions.getY(i);
+          const z = positions.getZ(i);
+          const scale = 1.3 + Math.random() * 1.2;
+          positions.setXYZ(i, x * scale, y * scale, z * scale);
+        }
+        positions.needsUpdate = true;
+        const audio = new Audio("https://cdn.pixabay.com/download/audio/2021/08/04/audio_d569c7f199.mp3?filename=pop-94319.mp3");
+        audio.play();
       }
     }
 
