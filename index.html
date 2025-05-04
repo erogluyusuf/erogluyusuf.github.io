@@ -83,7 +83,7 @@
     class World {
       constructor() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         this.camera.position.z = 3;
 
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -143,11 +143,11 @@
       constructor() {
         super();
         this.radius = 1.5;
-        this.detail = 2; // Küreyi daha net görmek için detayları azaltabilirsin
+        this.detail = 40;
         this.particleSizeMin = 0.01;
         this.particleSizeMax = 0.08;
 
-        this.geometry = new THREE.IcosahedronGeometry(1, this.detail);  // Detayları düşük tut
+        this.geometry = new THREE.IcosahedronBufferGeometry(1, this.detail);
         this.material = new THREE.PointsMaterial({
           map: this.makeDot(),
           blending: THREE.AdditiveBlending,
